@@ -59,18 +59,18 @@ jobs:
 
       - name: Create config.properties from secrets
         run: |
-          cat > src/main/resources/config.properties <<EOF
+          cd sport && cat > src/main/resources/config.properties <<EOF
           baseUrl=${BASE_URL}
           email=${TEST_EMAIL}
           password=${TEST_PASSWORD}
           EOF
 
       - name: Run tests
-        run: mvn -B -ntp clean test
+        run: cd sport && mvn -B -ntp clean test
 
       - name: Generate test report
         if: always()
-        run: mvn -B -ntp surefire-report:report
+        run: cd sport && mvn -B -ntp surefire-report:report
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -78,5 +78,5 @@ jobs:
         with:
           name: test-results
           path: |
-            target/surefire-reports/
-            target/site/surefire-report.html
+            sport/target/surefire-reports/
+            sport/target/site/surefire-report.html
