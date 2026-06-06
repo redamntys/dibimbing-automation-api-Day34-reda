@@ -5,29 +5,44 @@ import body.sportcategory.SportCategoryBody;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import utils.TokenHelper;
 import utils.Utils;
+import org.json.simple.JSONObject;
 
 public class SportCategoryTest extends BaseTest {
-    //Tambahkan Sportcategorytest
-    //Utils (random data)
-    //token helper (membantu mengambil token)
     private String categoryId;
 
-    //Get Token -> ambil dari folder src/resources/json/token.json
+    @BeforeClass
+    public void before() {
+        SportCategoryBody sportCategoryBody = new SportCategoryBody();
+        String token = TokenHelper.getToken();
+        //Ngehit endpoint
+        Response response = RestAssured.given()
+                .header("Authorization","Bearer " + token)
+                .header("Content-Type", "application/json")
+                .body(sportCategoryBody.createSportCategoryData(generateRandomName()).toString())
+                .when()
+                .post("v1/sport-categories/create")
+                .then()
+                .extract().response();
+
+        categoryId = response.jsonPath().getString("result.id");
+    }
+
     //Create
-    @Test
+    //curl --location 'https://sport-reservation-api-bootcamp.do.dibimbing.id/api/v1/sport-categories/create
+    @Test(description = "Verify successful creation of sport category")
     public void createSportCategories(){
         SportCategoryBody sportCategoryBody = new SportCategoryBody();
         String token = TokenHelper.getToken();
-        String randomName = Utils.getCategoryName();
 
         //Ngehit endpoint
         Response response = RestAssured.given()
                 .header("Authorization","Bearer " + token)
                 .header("Content-Type", "application/json")
-                .body(sportCategoryBody.createSportCategoryData("1231434").toString())
+                .body(sportCategoryBody.createSportCategoryData(generateRandomName()).toString())
                 .when()
                 .post("v1/sport-categories/create")
                 .then()
@@ -35,18 +50,49 @@ public class SportCategoryTest extends BaseTest {
 
         System.out.println("Create Response: " + response.asString());
 
-        //Assert
-
         //Get Category from response
-        categoryId = response.jsonPath().getString("result.id");
+        String categoryId = response.jsonPath().getString("result.id");
+        //Assert
         Assert.assertNotNull(categoryId,"Category ID should not be null");
-        System.out.println("Created Category ID: " + categoryId);
+        Assert.assertNotNull(response, "Got null as response");
+        Assert.assertFalse(Boolean.parseBoolean(response.jsonPath().getString("error")));
+        Assert.assertEquals(response.jsonPath().getString("message"), "data saved");
     }
-    //Read
-    @Test
+
+    //Update
+    //curl --location 'https://sport-reservation-api-bootcamp.do.dibimbing.id/api/v1/sport-categories/create
+    @Test (description = "Verify successful update of sport category")
+    public void updateSportCategory() {
+        String token = TokenHelper.getToken();
+        Assert.assertNotNull(categoryId, "Category ID that will be updated should not be null");
+
+        JSONObject requestBody = new JSONObject();
+        requestBody.put("name", generateRandomName());
+
+        Response response = RestAssured.given()
+                .header("Authorization", "Bearer " + token)
+                .header("Content-Type", "application/json")
+                .body(requestBody.toString())
+                .when()
+                .post("v1/sport-categories/update/" + categoryId)
+                .then()
+                .extract()
+                .response();
+
+        System.out.println("Update Response: " + response.asString());
+
+        //Assert
+        Assert.assertNotNull(response);
+        Assert.assertFalse(Boolean.parseBoolean(response.jsonPath().getString("error")));
+        Assert.assertEquals(response.jsonPath().getString("message"), "data saved");
+    }
+
+    //Get
+    //curl --location 'https://sport-reservation-api-bootcamp.do.dibimbing.id/api/v1/sport-categories?is_paginate=false&per_page=&page=' \
+    @Test (description = "Verify successful retrieval of sport categories")
     public void getSportCategories(){
         String token = TokenHelper.getToken();
-//curl --location 'https://sport-reservation-api-bootcamp.do.dibimbing.id/api/v1/sport-categories?is_paginate=false&per_page=&page=' \
+
         Response response = RestAssured.given()
                 .header("Authorization","Bearer " + token)
                 .header("Content-Type", "application/json")
@@ -58,23 +104,39 @@ public class SportCategoryTest extends BaseTest {
                 .then()
                 .extract().response();
 
-        System.out.println("Get Response: " + response.asString());
+       System.out.println("Get Response: " + response.asString());
+
+        //Assert
+       Assert.assertNotNull(response);
+       Assert.assertFalse(Boolean.parseBoolean(response.jsonPath().getString("error")));
+       Assert.assertNotEquals(response.jsonPath().getString("result").length(), 0);
     }
-    //Update
+
     //Delete
-    @Test
+    //curl --location 'https://sport-reservation-api-bootcamp.do.dibimbing.id/api/v1/sport-categories/delete/{{category_id}}
+    @Test(description = "Verify successful deletion of sport category", dependsOnMethods = "updateSportCategory", alwaysRun = true)
     public void deleteSportCategory(){
         String token = TokenHelper.getToken();
+        Assert.assertNotNull(categoryId, "Category ID that will be deleted should not be null");
 
         Response response = RestAssured.given()
                 .header("Authorization","Bearer " + token)
                 .header("Content-Type", "application/json")
                 .when()
-                .delete("v1/sport-categories/delete" + categoryId)
+                .delete("v1/sport-categories/delete/" + categoryId)
                 .then()
                 .extract().response();
 
-        System.out.println("Get Response: " + response.asString());
+        System.out.println("Delete Response: " + response.asString());
+
+        //Assert
+        Assert.assertNotNull(response);
+        Assert.assertFalse(Boolean.parseBoolean(response.jsonPath().getString("error")));
+        Assert.assertEquals(response.jsonPath().getString("message"), "Data deleted successfully");
     }
-    //E2E
+
+    //Utils (random data)
+    private String generateRandomName() {
+        return Utils.getCategoryName();
+    }
 }
