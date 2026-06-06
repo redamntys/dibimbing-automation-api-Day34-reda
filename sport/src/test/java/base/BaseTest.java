@@ -1,13 +1,12 @@
 package base;
 
 import io.restassured.RestAssured;
-import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeTest;
 import utils.ConfigReader;
 
 public class BaseTest {
-    @BeforeClass
+    @BeforeTest
     public void setUp() {
-        String baseUrl = ConfigReader.getProperty("baseUrl");
-        RestAssured.baseURI = baseUrl;
+        RestAssured.baseURI = ConfigReader.getProperty("baseUrl");
     }
 }
